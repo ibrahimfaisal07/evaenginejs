@@ -1,3 +1,5 @@
+import { Collider, PhysicsBody } from "./lib/physics.js";
+
 class Game {
     viewport = null;
     ctx = document.createElement('canvas').getContext("2d");
@@ -53,7 +55,11 @@ class Game {
             });
 
             this.latestKeys = [...newKeys];
+
+            this.oldKeys.push(e.key.toLowerCase())
         });
+
+        this.oldKeys = []
 
         // handle mouse click input
         document.addEventListener('mousedown', e => {
@@ -72,9 +78,16 @@ class Game {
         });
 
         // request a key
-        this.RequestKey = (key)=>{
-            if(this.latestKeys.includes(key)){
-                return true;
+        this.RequestKey = (key, letGo = false)=>{
+            console.log(this.latestKeys, this.oldKeys);
+            if (letGo == false) {
+                if(this.latestKeys.includes(key)){
+                    return true;
+                }
+            } else {
+                if (this.oldKeys.includes(key)) {
+                    return true;
+                }
             }
             return false;
         }
@@ -122,17 +135,18 @@ class Game {
             }
 
             this.scene.renderBg(this.ctx);
-        
+
+            
             this.entities.forEach(entity => {
                 entity.update();
-
+                
                 if(entity.visual.affectedByCamera) {
                     entity.renderTransform.position = new Vector2(
-                        (entity.transform.position.x - this.scene.camera.transform.position.x) * this.scene.camera.transform.zoom,
-                        (entity.transform.position.y - this.scene.camera.transform.position.y) * this.scene.camera.transform.zoom,
+                        (entity.transform.position.x - this.scene.camera.transform.position.x) * this.scene.camera.zoom,
+                        (entity.transform.position.y - this.scene.camera.transform.position.y) * this.scene.camera.zoom,
                     )
-
-                    console.log(entity.renderTransform.position);
+                    
+                    
                     entity.renderTransform.size = {
                         width: entity.transform.size.width * this.scene.camera.zoom,
                         height: entity.transform.size.height * this.scene.camera.zoom,
@@ -144,6 +158,7 @@ class Game {
 
                 entity.render(this.ctx);
             });
+            this.oldKeys = [];
         }, 1);
     }
     
@@ -208,14 +223,6 @@ class Vector2 {
     }
 }
 
-class Vector3 {
-    constructor (x, y, z) {
-        this.x = x;
-        this.y = y;
-        this.z = z;
-    }
-}
-
 class Scene {
     id = "";
     entities = [];
@@ -256,6 +263,9 @@ class Entity {
         spriteData: null,
         affectedByCamera: true
     };
+
+    collider = new Collider(null)
+    physics = new PhysicsBody(null)
 
     constructor(x, y, width, height) {
         this.transform = new Transform(x, y, width, height)
@@ -310,23 +320,11 @@ class Entity {
 
 class Camera {
     constructor (x, y, zoom) {
-        this.transform = new Transform(new Vector2(x, y));
+        this.transform = new Transform(x, y);
         this.zoom = zoom;
     }
 }
 
-async function CreateSpriteData(src) {
-    var response = await fetch(src);
 
-    var fileBlob = await response.blob();
-    var bitmap = await createImageBitmap(fileBlob);
 
-    var canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
-    var context = canvas.getContext('2d');
-
-    context.drawImage(bitmap, 0, 0);
-    var myData = context.getImageData(0, 0, bitmap.width, bitmap.height);
-    return myData;
-};
-
-export { Game, Transform, Entity, Vector2, Scene, Camera, CreateSpriteData };
+export { Game, Transform, Entity, Vector2, Scene, Camera };
